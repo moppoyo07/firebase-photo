@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>写真アップロードフォーム</title>
+  <script type="module">
+    // ✅ 自分のfirebaseConfigに置き換えてね！
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT_ID.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
+
+    window.uploadImage = async () => {
+      const fileInput = document.getElementById("image");
+      const file = fileInput.files[0];
+      if (!file) {
+        alert("画像を選んでください！");
+        return;
+      }
+
+      const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      alert("アップロード成功！\n画像URL: " + url);
+    };
+  </script>
+</head>
+<body>
+  <h2>営業報告：写真アップロード</h2>
+  <input type="file" id="image" accept="image/*" />
+  <button onclick="uploadImage()">アップロード</button>
+</body>
+</html>
