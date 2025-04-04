@@ -4,22 +4,25 @@
   <meta charset="UTF-8" />
   <title>写真アップロードフォーム</title>
   <script type="module">
-    // ✅ 自分のfirebaseConfigに置き換えてね！
+    // 🔧 Firebase SDKの読み込み（CDN）
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
+    // ✅ ここに「あなたのfirebaseConfig」を貼る！
     const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
+      apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
+      authDomain: "photo-upload-form.firebaseapp.com",
+      projectId: "photo-upload-form",
+      storageBucket: "photo-upload-form.firebasestorage.app",
+      messagingSenderId: "194112470190",
+      appId: "1:194112470190:web:38ef7cb06c06432de2413f",
     };
 
+    // Firebase初期化
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
 
+    // アップロード処理
     window.uploadImage = async () => {
       const fileInput = document.getElementById("image");
       const file = fileInput.files[0];
