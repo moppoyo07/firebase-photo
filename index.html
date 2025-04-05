@@ -2,44 +2,67 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>写真アップロードフォーム</title>
+  <title>EXIF付きアップロードフォーム</title>
+
+  <!-- Firebase SDK -->
   <script type="module">
-    // 🔧 Firebase SDKの読み込み（CDN）
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // ✅ ここに「あなたのfirebaseConfig」を貼る！
+    // ✅ あなたのfirebaseConfigに差し替えてね！
     const firebaseConfig = {
       apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
       authDomain: "photo-upload-form.firebaseapp.com",
       projectId: "photo-upload-form",
-      storageBucket: "photo-upload-form.firebasestorage.app",
+      storageBucket: "photo-upload-form.appspot.com",
       messagingSenderId: "194112470190",
-      appId: "1:194112470190:web:38ef7cb06c06432de2413f",
+      appId: "1:194112470190:web:38ef7cb06c06432de2413f"
     };
 
-    // Firebase初期化
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
 
-    // アップロード処理
     window.uploadImage = async () => {
       const fileInput = document.getElementById("image");
       const file = fileInput.files[0];
-      if (!file) {
-        alert("画像を選んでください！");
-        return;
-      }
+      if (!file) return alert("画像を選んでください");
 
-      const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      alert("アップロード成功！\n画像URL: " + url);
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = async function () {
+          EXIF.getData(img, async function () {
+            const dateTime = EXIF.getTag(this, "DateTimeOriginal");
+            const lat = EXIF.getTag(this, "GPSLatitude");
+            const lon = EXIF.getTag(this, "GPSLongitude");
+
+            if (!dateTime || !lat || !lon) {
+              alert("この画像には撮影日時または位置情報がありません。\n現地で再撮影してください。");
+              return;
+            }
+
+            console.log("撮影日時:", dateTime);
+            console.log("緯度:", lat);
+            console.log("経度:", lon);
+
+            // アップロード
+            const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+            await uploadBytes(storageRef, file);
+            const url = await getDownloadURL(storageRef);
+            alert("アップロード成功！\n画像URL: " + url);
+          });
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
     };
   </script>
+
+  <!-- EXIFライブラリ -->
+  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
 </head>
 <body>
-  <h2>営業報告：写真アップロード</h2>
+  <h2>EXIF付き営業報告フォーム</h2>
   <input type="file" id="image" accept="image/*" />
   <button onclick="uploadImage()">アップロード</button>
 </body>
