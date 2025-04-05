@@ -4,12 +4,15 @@
   <meta charset="UTF-8" />
   <title>EXIF付きアップロードフォーム</title>
 
-  <!-- Firebase SDK -->
+  <!-- ✅ EXIFライブラリ（CDN） -->
+  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+
+  <!-- ✅ Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // ✅ あなたのfirebaseConfigに差し替えてね！
+    // ✅ 君のfirebaseConfigをここに差し替えてね（これは例）
     const firebaseConfig = {
       apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
       authDomain: "photo-upload-form.firebaseapp.com",
@@ -22,34 +25,47 @@
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
 
+    // ✅ アップロード処理
     window.uploadImage = async () => {
       const fileInput = document.getElementById("image");
       const file = fileInput.files[0];
-      if (!file) return alert("画像を選んでください");
+      const resultDiv = document.getElementById("result");
+      resultDiv.innerHTML = ""; // 初期化
+
+      if (!file) {
+        alert("画像を選んでください！");
+        return;
+      }
 
       const reader = new FileReader();
       reader.onload = function (e) {
         const img = new Image();
-        img.onload = async function () {
+        img.onload = function () {
           EXIF.getData(img, async function () {
             const dateTime = EXIF.getTag(this, "DateTimeOriginal");
             const lat = EXIF.getTag(this, "GPSLatitude");
             const lon = EXIF.getTag(this, "GPSLongitude");
 
             if (!dateTime || !lat || !lon) {
-              alert("この画像には撮影日時または位置情報がありません。\n現地で再撮影してください。");
+              alert("⚠️ この画像には撮影日時または位置情報が含まれていません。\n現地で撮影し直してください。");
+              resultDiv.innerHTML = "<p style='color:red;'>❌ EXIF情報が見つかりませんでした。</p>";
               return;
             }
 
-            console.log("撮影日時:", dateTime);
-            console.log("緯度:", lat);
-            console.log("経度:", lon);
+            // ✅ 結果表示
+            resultDiv.innerHTML = `
+              <p>📅 撮影日時: ${dateTime}</p>
+              <p>📍 緯度: ${lat}</p>
+              <p>📍 経度: ${lon}</p>
+              <p style="color: blue;">⏳ 画像をアップロード中...</p>
+            `;
 
-            // アップロード
+            // ✅ Firebase Storageへアップロード
             const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
             await uploadBytes(storageRef, file);
             const url = await getDownloadURL(storageRef);
-            alert("アップロード成功！\n画像URL: " + url);
+
+            resultDiv.innerHTML += `<p style="color: green;">✅ アップロード成功！<br>📎 <a href="${url}" target="_blank">画像URLを見る</a></p>`;
           });
         };
         img.src = e.target.result;
@@ -57,13 +73,14 @@
       reader.readAsDataURL(file);
     };
   </script>
-
-  <!-- EXIFライブラリ -->
-  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
 </head>
 <body>
-  <h2>EXIF付き営業報告フォーム</h2>
+  <h2>📷 営業報告：EXIF付きアップロードフォーム</h2>
+  <p>※ 撮影日時・位置情報が含まれない画像は受付できません</p>
+
   <input type="file" id="image" accept="image/*" />
   <button onclick="uploadImage()">アップロード</button>
+
+  <div id="result" style="margin-top: 20px;"></div>
 </body>
 </html>
