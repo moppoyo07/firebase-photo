@@ -8,7 +8,7 @@
   <!-- EXIFライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
 
-  <!-- スタイル（見やすくてスマホ最適化） -->
+  <!-- スタイル -->
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
@@ -62,18 +62,9 @@
       font-size: 0.95em;
     }
 
-    .success {
-      color: green;
-    }
-
-    .error {
-      color: red;
-    }
-
-    .small {
-      font-size: 0.85em;
-      color: #666;
-    }
+    .success { color: green; }
+    .error { color: red; margin-top: 20px; }
+    .small { font-size: 0.85em; color: #666; }
   </style>
 
   <!-- Firebase SDK -->
@@ -97,7 +88,10 @@
       const fileInput = document.getElementById("image");
       const file = fileInput.files[0];
       const resultDiv = document.getElementById("result");
+      const errorDiv = document.getElementById("error");
+
       resultDiv.innerHTML = "";
+      errorDiv.innerText = "";
 
       if (!file) {
         alert("画像を選んでください！");
@@ -126,11 +120,15 @@
               <p class="small">⏳ アップロード中...</p>
             `;
 
-            const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
-            await uploadBytes(storageRef, file);
-            const url = await getDownloadURL(storageRef);
+            try {
+              const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
+              await uploadBytes(storageRef, file);
+              const url = await getDownloadURL(storageRef);
 
-            resultDiv.innerHTML += `<p class="success">✅ アップロード成功！<br><a href="${url}" target="_blank">📎 画像URLを見る</a></p>`;
+              resultDiv.innerHTML += `<p class="success">✅ アップロード成功！<br><a href="${url}" target="_blank">📎 画像URLを見る</a></p>`;
+            } catch (error) {
+              errorDiv.innerText = "❌ アップロードに失敗しました：" + error.message;
+            }
           });
         };
         img.src = e.target.result;
@@ -151,5 +149,6 @@
   <button onclick="uploadImage()">アップロード</button>
 
   <div id="result"></div>
+  <div id="error"></div>
 </body>
 </html>
