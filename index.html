@@ -3,152 +3,102 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>営業報告：写真アップロード</title>
+  <title>📷 営業報告（PWA）</title>
 
-  <!-- EXIFライブラリ -->
-  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <!-- PWAマニフェスト -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#007bff" />
 
-  <!-- スタイル -->
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
+      padding: 1.5rem;
       max-width: 480px;
-      margin: 0 auto;
-      padding: 24px;
+      margin: auto;
       background-color: #f9f9f9;
+    }
+    h1 {
+      font-size: 1.4rem;
       color: #333;
     }
-
-    h2 {
-      font-size: 1.3em;
-      margin-bottom: 12px;
-    }
-
-    .note {
-      background-color: #fff4e5;
-      border-left: 5px solid #f39c12;
-      padding: 10px;
-      margin-bottom: 20px;
-      font-size: 0.95em;
-    }
-
-    input[type="file"] {
-      display: block;
-      margin-bottom: 12px;
-      font-size: 1em;
-    }
-
     button {
       width: 100%;
-      padding: 12px;
+      padding: 1rem;
+      font-size: 1rem;
       background-color: #007bff;
       color: white;
       border: none;
       border-radius: 6px;
-      font-size: 1em;
       cursor: pointer;
+      margin-top: 1rem;
     }
-
     button:hover {
       background-color: #0056b3;
     }
-
-    #result {
-      margin-top: 24px;
-      padding: 12px;
-      background-color: #fff;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      font-size: 0.95em;
+    #preview {
+      margin-top: 1rem;
+      max-width: 100%;
     }
-
-    .success { color: green; }
-    .error { color: red; margin-top: 20px; }
-    .small { font-size: 0.85em; color: #666; }
+    #info {
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      color: #444;
+    }
   </style>
+</head>
+<body>
+  <h1>📷 営業報告（現地撮影）</h1>
+  <input type="file" accept="image/*" capture="environment" id="cameraInput">
+  <img id="preview" src="" alt="プレビュー" style="display:none;">
+  <div id="info"></div>
+  <button id="uploadBtn">アップロード</button>
 
-  <!-- Firebase SDK -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
+  <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
+  <script>
+    const input = document.getElementById('cameraInput');
+    const preview = document.getElementById('preview');
+    const info = document.getElementById('info');
+    let selectedFile = null;
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
-      authDomain: "photo-upload-form.firebaseapp.com",
-      projectId: "photo-upload-form",
-      storageBucket: "photo-upload-form.appspot.com",
-      messagingSenderId: "194112470190",
-      appId: "1:194112470190:web:38ef7cb06c06432de2413f"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const storage = getStorage(app);
-
-    window.uploadImage = async () => {
-      const fileInput = document.getElementById("image");
-      const file = fileInput.files[0];
-      const resultDiv = document.getElementById("result");
-      const errorDiv = document.getElementById("error");
-
-      resultDiv.innerHTML = "";
-      errorDiv.innerText = "";
-
-      if (!file) {
-        alert("画像を選んでください！");
-        return;
-      }
-
+    input.addEventListener('change', function () {
+      const file = input.files[0];
+      if (!file) return;
+      selectedFile = file;
       const reader = new FileReader();
       reader.onload = function (e) {
+        preview.src = e.target.result;
+        preview.style.display = 'block';
+
         const img = new Image();
         img.onload = function () {
-          EXIF.getData(img, async function () {
-            const dateTime = EXIF.getTag(this, "DateTimeOriginal");
-            const lat = EXIF.getTag(this, "GPSLatitude");
-            const lon = EXIF.getTag(this, "GPSLongitude");
-
-            if (!dateTime || !lat || !lon) {
-              alert("⚠️ この画像には撮影日時または位置情報が含まれていません。現地で再撮影してください。");
-              resultDiv.innerHTML = `<p class="error">❌ EXIF情報が見つかりませんでした。</p>`;
-              return;
-            }
-
-            resultDiv.innerHTML = `
-              <p>📅 撮影日時: ${dateTime}</p>
-              <p>📍 緯度: ${lat}</p>
-              <p>📍 経度: ${lon}</p>
-              <p class="small">⏳ アップロード中...</p>
-            `;
-
-            try {
-              const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
-              await uploadBytes(storageRef, file);
-              const url = await getDownloadURL(storageRef);
-
-              resultDiv.innerHTML += `<p class="success">✅ アップロード成功！<br><a href="${url}" target="_blank">📎 画像URLを見る</a></p>`;
-            } catch (error) {
-              errorDiv.innerText = "❌ アップロードに失敗しました：" + error.message;
-            }
+          EXIF.getData(img, function () {
+            const dateTime = EXIF.getTag(this, 'DateTimeOriginal');
+            const lat = EXIF.getTag(this, 'GPSLatitude');
+            const lon = EXIF.getTag(this, 'GPSLongitude');
+            info.innerHTML = `📅 撮影日時: ${dateTime || 'なし'}<br>📍 緯度: ${lat || 'なし'} / 経度: ${lon || 'なし'}`;
           });
         };
         img.src = e.target.result;
       };
       reader.readAsDataURL(file);
-    };
+    });
+
+    document.getElementById('uploadBtn').addEventListener('click', async () => {
+      if (!selectedFile) {
+        alert("画像を選択してください。");
+        return;
+      }
+      alert("✅ アップロード処理（Firebase連携は今後追加）");
+      // 後で Firebase 連携やサイズ圧縮処理をここに追加予定
+    });
   </script>
-</head>
-<body>
-  <h2>📷 営業報告：写真アップロード</h2>
 
-  <div class="note">
-    撮影日時・位置情報が含まれない画像は受付できません。<br />
-    カメラの「位置情報ON」を確認のうえ、現地で撮影してください。
-  </div>
-
-  <input type="file" id="image" accept="image/*" />
-  <button onclick="uploadImage()">アップロード</button>
-
-  <div id="result"></div>
-  <div id="error"></div>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').then(() => {
+        console.log("✅ Service Worker 登録完了");
+      });
+    }
+  </script>
 </body>
 </html>
