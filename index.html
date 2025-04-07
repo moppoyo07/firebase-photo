@@ -49,7 +49,7 @@
   <h1>📷 営業報告（GPS付き撮影）</h1>
   <input type="file" accept="image/*" capture="environment" id="cameraInput">
   <img id="preview" src="" alt="プレビュー" style="display:none;">
-  <div id="info">📍 位置情報取得中...</div>
+  <div id="info">📍 ページ表示時に位置情報を取得します</div>
   <button id="uploadBtn">アップロード</button>
 
   <script>
@@ -57,26 +57,28 @@
     const preview = document.getElementById('preview');
     const info = document.getElementById('info');
     let selectedFile = null;
-    let currentLat = null;
-    let currentLon = null;
+    let lat = null;
+    let lon = null;
     let timestamp = null;
 
-    // 位置情報取得
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          currentLat = position.coords.latitude;
-          currentLon = position.coords.longitude;
-          timestamp = new Date().toLocaleString();
-          info.innerHTML = `📅 撮影日時: ${timestamp}<br>📍 緯度: ${currentLat.toFixed(5)} / 経度: ${currentLon.toFixed(5)}`;
-        },
-        (error) => {
-          info.innerHTML = "⚠️ 位置情報の取得に失敗しました。許可されていますか？";
-        }
-      );
-    } else {
-      info.innerHTML = "⚠️ 位置情報がサポートされていません。";
-    }
+    // ページ読み込み時に位置情報取得（ユーザー操作前に確認ポップを出す）
+    window.addEventListener('DOMContentLoaded', () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            lat = position.coords.latitude;
+            lon = position.coords.longitude;
+            timestamp = new Date().toLocaleString();
+            info.innerHTML = `📅 撮影日時: ${timestamp}<br>📍 緯度: ${lat.toFixed(5)} / 経度: ${lon.toFixed(5)}`;
+          },
+          (error) => {
+            info.innerHTML = "⚠️ 位置情報の取得に失敗しました。許可されていますか？";
+          }
+        );
+      } else {
+        info.innerHTML = "⚠️ 位置情報がサポートされていません。";
+      }
+    });
 
     input.addEventListener('change', function () {
       const file = input.files[0];
@@ -95,7 +97,12 @@
         alert("画像を選択してください。");
         return;
       }
-      alert(`✅ アップロード処理（仮）\n撮影日時: ${timestamp}\n緯度: ${currentLat} / 経度: ${currentLon}`);
+
+      if (lat && lon && timestamp) {
+        alert(`✅ アップロード処理（仮）\n撮影日時: ${timestamp}\n緯度: ${lat} / 経度: ${lon}`);
+      } else {
+        alert("⚠️ 位置情報が取得できていません。ページの読み直しが必要な場合があります。");
+      }
     });
   </script>
 
