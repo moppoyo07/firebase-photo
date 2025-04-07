@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📷 営業報告（PWA＋GPS）</title>
+  <title>📷 営業報告（PWA＋GPS＋入力）</title>
 
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#007bff" />
@@ -20,6 +20,19 @@
       font-size: 1.4rem;
       color: #333;
     }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.3rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
     button {
       width: 100%;
       padding: 1rem;
@@ -29,7 +42,7 @@
       border: none;
       border-radius: 6px;
       cursor: pointer;
-      margin-top: 1rem;
+      margin-top: 1.5rem;
     }
     button:hover {
       background-color: #0056b3;
@@ -46,10 +59,26 @@
   </style>
 </head>
 <body>
-  <h1>📷 営業報告（GPS付き撮影）</h1>
+  <h1>📷 営業報告（試験版）</h1>
+
+  <label>営業先（店名・事業所名）</label>
+  <input type="text" id="placeName" placeholder="例：○○クリニック">
+
+  <label>担当者名</label>
+  <input type="text" id="personName" placeholder="例：田中 様">
+
+  <label>訪問時間</label>
+  <input type="time" id="visitTime">
+
+  <label>営業内容（メモ）</label>
+  <textarea id="content" rows="4" placeholder="例：リーフレット設置のお願いなど"></textarea>
+
+  <label>写真を撮影／選択</label>
   <input type="file" accept="image/*" capture="environment" id="cameraInput">
   <img id="preview" src="" alt="プレビュー" style="display:none;">
+
   <div id="info">📍 ページ表示時に位置情報を取得します</div>
+
   <button id="uploadBtn">アップロード</button>
 
   <script>
@@ -61,7 +90,6 @@
     let lon = null;
     let timestamp = null;
 
-    // ページ読み込み時に位置情報取得（ユーザー操作前に確認ポップを出す）
     window.addEventListener('DOMContentLoaded', () => {
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
@@ -93,16 +121,20 @@
     });
 
     document.getElementById('uploadBtn').addEventListener('click', async () => {
-      if (!selectedFile) {
-        alert("画像を選択してください。");
+      const place = document.getElementById('placeName').value;
+      const person = document.getElementById('personName').value;
+      const time = document.getElementById('visitTime').value;
+      const content = document.getElementById('content').value;
+
+      if (!selectedFile || !place || !person || !time || !content) {
+        alert("すべての項目と写真を入力してください。");
         return;
       }
 
-      if (lat && lon && timestamp) {
-        alert(`✅ アップロード処理（仮）\n撮影日時: ${timestamp}\n緯度: ${lat} / 経度: ${lon}`);
-      } else {
-        alert("⚠️ 位置情報が取得できていません。ページの読み直しが必要な場合があります。");
-      }
+      const summary = `✅ アップロード処理（仮）\n\n` +
+        `🏢 営業先：${place}\n👤 担当者：${person}\n🕒 訪問時間：${time}\n📅 撮影日時：${timestamp}\n📍 緯度：${lat} / 経度：${lon}\n📝 内容：${content}`;
+
+      alert(summary);
     });
   </script>
 
