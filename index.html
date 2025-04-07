@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
->
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📷 営業報告（PWA＋Firestore保存）</title>
+  <title>📷 営業報告（Firestore＋リサイズ対応）</title>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
@@ -64,7 +63,7 @@
   </style>
 </head>
 <body>
-  <h1>📷 営業報告（Firestore保存）</h1>
+  <h1>📷 営業報告（リサイズ対応）</h1>
 
   <label>営業先（店名・事業所名）</label>
   <input type="text" id="placeName" placeholder="例：○○クリニック">
@@ -87,7 +86,6 @@
   <button id="uploadBtn">Firestoreに送信</button>
 
   <script>
-    // 🔥 Firebase Config をプロジェクトのものに置き換えてね
     const firebaseConfig = {
       apiKey: "YOUR_API_KEY",
       authDomain: "YOUR_PROJECT.firebaseapp.com",
@@ -103,7 +101,7 @@
     const input = document.getElementById('cameraInput');
     const preview = document.getElementById('preview');
     const info = document.getElementById('info');
-    let selectedFile = null;
+    let resizedBlob = null;
     let lat = null;
     let lon = null;
     let timestamp = null;
@@ -127,11 +125,25 @@
     input.addEventListener('change', function () {
       const file = input.files[0];
       if (!file) return;
-      selectedFile = file;
+
       const reader = new FileReader();
       reader.onload = function (e) {
-        preview.src = e.target.result;
-        preview.style.display = 'block';
+        const img = new Image();
+        img.onload = function () {
+          const canvas = document.createElement('canvas');
+          const maxWidth = 800;
+          const scale = maxWidth / img.width;
+          canvas.width = maxWidth;
+          canvas.height = img.height * scale;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            resizedBlob = blob;
+          }, 'image/jpeg', 0.8);
+          preview.src = canvas.toDataURL('image/jpeg');
+          preview.style.display = 'block';
+        };
+        img.src = e.target.result;
       };
       reader.readAsDataURL(file);
     });
@@ -142,13 +154,13 @@
       const time = document.getElementById('visitTime').value;
       const content = document.getElementById('content').value;
 
-      if (!selectedFile || !place || !person || !time || !content) {
+      if (!resizedBlob || !place || !person || !time || !content) {
         alert("すべての項目と写真を入力してください。");
         return;
       }
 
       const storageRef = storage.ref().child('photos/photo_' + Date.now());
-      await storageRef.put(selectedFile);
+      await storageRef.put(resizedBlob);
       const imageUrl = await storageRef.getDownloadURL();
 
       await db.collection("reports").add({
