@@ -1,18 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>EXIF付きアップロードフォーム</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>営業報告：写真アップロード</title>
 
-  <!-- ✅ EXIFライブラリ（CDN） -->
+  <!-- EXIFライブラリ -->
   <script src="https://cdn.jsdelivr.net/npm/exif-js"></script>
 
-  <!-- ✅ Firebase SDK -->
+  <!-- スタイル（見やすくてスマホ最適化） -->
+  <style>
+    body {
+      font-family: "Segoe UI", sans-serif;
+      max-width: 480px;
+      margin: 0 auto;
+      padding: 24px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+
+    h2 {
+      font-size: 1.3em;
+      margin-bottom: 12px;
+    }
+
+    .note {
+      background-color: #fff4e5;
+      border-left: 5px solid #f39c12;
+      padding: 10px;
+      margin-bottom: 20px;
+      font-size: 0.95em;
+    }
+
+    input[type="file"] {
+      display: block;
+      margin-bottom: 12px;
+      font-size: 1em;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 1em;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    #result {
+      margin-top: 24px;
+      padding: 12px;
+      background-color: #fff;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95em;
+    }
+
+    .success {
+      color: green;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .small {
+      font-size: 0.85em;
+      color: #666;
+    }
+  </style>
+
+  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-storage.js";
 
-    // ✅ 君のfirebaseConfigをここに差し替えてね（これは例）
     const firebaseConfig = {
       apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
       authDomain: "photo-upload-form.firebaseapp.com",
@@ -25,12 +93,11 @@
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
 
-    // ✅ アップロード処理
     window.uploadImage = async () => {
       const fileInput = document.getElementById("image");
       const file = fileInput.files[0];
       const resultDiv = document.getElementById("result");
-      resultDiv.innerHTML = ""; // 初期化
+      resultDiv.innerHTML = "";
 
       if (!file) {
         alert("画像を選んでください！");
@@ -47,25 +114,23 @@
             const lon = EXIF.getTag(this, "GPSLongitude");
 
             if (!dateTime || !lat || !lon) {
-              alert("⚠️ この画像には撮影日時または位置情報が含まれていません。\n現地で撮影し直してください。");
-              resultDiv.innerHTML = "<p style='color:red;'>❌ EXIF情報が見つかりませんでした。</p>";
+              alert("⚠️ この画像には撮影日時または位置情報が含まれていません。現地で再撮影してください。");
+              resultDiv.innerHTML = `<p class="error">❌ EXIF情報が見つかりませんでした。</p>`;
               return;
             }
 
-            // ✅ 結果表示
             resultDiv.innerHTML = `
               <p>📅 撮影日時: ${dateTime}</p>
               <p>📍 緯度: ${lat}</p>
               <p>📍 経度: ${lon}</p>
-              <p style="color: blue;">⏳ 画像をアップロード中...</p>
+              <p class="small">⏳ アップロード中...</p>
             `;
 
-            // ✅ Firebase Storageへアップロード
             const storageRef = ref(storage, `uploads/${Date.now()}_${file.name}`);
             await uploadBytes(storageRef, file);
             const url = await getDownloadURL(storageRef);
 
-            resultDiv.innerHTML += `<p style="color: green;">✅ アップロード成功！<br>📎 <a href="${url}" target="_blank">画像URLを見る</a></p>`;
+            resultDiv.innerHTML += `<p class="success">✅ アップロード成功！<br><a href="${url}" target="_blank">📎 画像URLを見る</a></p>`;
           });
         };
         img.src = e.target.result;
@@ -75,12 +140,16 @@
   </script>
 </head>
 <body>
-  <h2>📷 営業報告：EXIF付きアップロードフォーム</h2>
-  <p>※ 撮影日時・位置情報が含まれない画像は受付できません</p>
+  <h2>📷 営業報告：写真アップロード</h2>
+
+  <div class="note">
+    撮影日時・位置情報が含まれない画像は受付できません。<br />
+    カメラの「位置情報ON」を確認のうえ、現地で撮影してください。
+  </div>
 
   <input type="file" id="image" accept="image/*" />
   <button onclick="uploadImage()">アップロード</button>
 
-  <div id="result" style="margin-top: 20px;"></div>
+  <div id="result"></div>
 </body>
 </html>
