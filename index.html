@@ -86,14 +86,16 @@
   <button id="uploadBtn">Firestoreに送信</button>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "",
-      appId: "",
+  const firebaseConfig = {
+    apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
+    authDomain: "photo-upload-form.firebaseapp.com",
+    projectId: "photo-upload-form",
+    storageBucket: "photo-upload-form.appspot.com", // ←これが正解！
+    messagingSenderId: "194112470190",
+    appId: "1:194112470190:web:38ef7cb06c06432de2413f",
+    measurementId: "G-TH5DL602JK"
     };
+
     const app = firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
     const storage = firebase.storage();
