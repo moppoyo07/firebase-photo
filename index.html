@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="ja">
+>
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📷 営業報告（PWA＋GPS＋入力）</title>
+  <title>📷 営業報告（PWA＋Firestore保存）</title>
 
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#007bff" />
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-storage.js"></script>
 
   <style>
     body {
@@ -61,7 +64,7 @@
   </style>
 </head>
 <body>
-  <h1>📷 営業報告（試験版）</h1>
+  <h1>📷 営業報告（Firestore保存）</h1>
 
   <label>営業先（店名・事業所名）</label>
   <input type="text" id="placeName" placeholder="例：○○クリニック">
@@ -81,9 +84,22 @@
 
   <div id="info">📍 位置情報を取得しました（内部用）</div>
 
-  <button id="uploadBtn">アップロード</button>
+  <button id="uploadBtn">Firestoreに送信</button>
 
   <script>
+    // 🔥 Firebase Config をプロジェクトのものに置き換えてね
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "",
+      appId: "",
+    };
+    const app = firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const storage = firebase.storage();
+
     const input = document.getElementById('cameraInput');
     const preview = document.getElementById('preview');
     const info = document.getElementById('info');
@@ -98,15 +114,13 @@
           (position) => {
             lat = position.coords.latitude;
             lon = position.coords.longitude;
-            timestamp = new Date().toLocaleString();
+            timestamp = new Date().toISOString();
             info.innerHTML = `📍 位置情報を取得済み`;
           },
           (error) => {
             info.innerHTML = "⚠️ 位置情報の取得に失敗しました。許可されていますか？";
           }
         );
-      } else {
-        info.innerHTML = "⚠️ 位置情報がサポートされていません。";
       }
     });
 
@@ -133,19 +147,23 @@
         return;
       }
 
-      const summary = `✅ アップロード内容（仮）\n\n` +
-        `🏢 営業先：${place}\n👤 担当者：${person}\n🕒 訪問時間：${time}\n📝 内容：${content}`;
+      const storageRef = storage.ref().child('photos/photo_' + Date.now());
+      await storageRef.put(selectedFile);
+      const imageUrl = await storageRef.getDownloadURL();
 
-      alert(summary);
-    });
-  </script>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(() => {
-        console.log("✅ Service Worker 登録完了");
+      await db.collection("reports").add({
+        place,
+        person,
+        time,
+        content,
+        lat,
+        lon,
+        timestamp,
+        imageUrl
       });
-    }
+
+      alert("✅ Firestoreへの保存完了！");
+    });
   </script>
 </body>
 </html>
