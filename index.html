@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>📷 営業報告（Firestore＋リサイズ対応）</title>
+  <title>📷 営業報告（Firestore＋画像リサイズ）</title>
 
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
@@ -63,7 +63,7 @@
   </style>
 </head>
 <body>
-  <h1>📷 営業報告（リサイズ対応）</h1>
+  <h1>📷 営業報告（Firestore＋画像リサイズ）</h1>
 
   <label>営業先（店名・事業所名）</label>
   <input type="text" id="placeName" placeholder="例：○○クリニック">
@@ -86,14 +86,14 @@
   <button id="uploadBtn">Firestoreに送信</button>
 
   <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
-    authDomain: "photo-upload-form.firebaseapp.com",
-    projectId: "photo-upload-form",
-    storageBucket: "photo-upload-form.appspot.com", // ←これが正解！
-    messagingSenderId: "194112470190",
-    appId: "1:194112470190:web:38ef7cb06c06432de2413f",
-    measurementId: "G-TH5DL602JK"
+    const firebaseConfig = {
+      apiKey: "AIzaSyDFsTE_AelFhiM95Vjprdz1JmIGxHep_zw",
+      authDomain: "photo-upload-form.firebaseapp.com",
+      projectId: "photo-upload-form",
+      storageBucket: "photo-upload-form.appspot.com",
+      messagingSenderId: "194112470190",
+      appId: "1:194112470190:web:38ef7cb06c06432de2413f",
+      measurementId: "G-TH5DL602JK"
     };
 
     const app = firebase.initializeApp(firebaseConfig);
@@ -124,30 +124,42 @@
       }
     });
 
-    input.addEventListener('change', function () {
+    function resizeImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const img = new Image();
+          img.onload = function () {
+            const canvas = document.createElement('canvas');
+            const maxWidth = 800;
+            const scale = maxWidth / img.width;
+            canvas.width = maxWidth;
+            canvas.height = img.height * scale;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob((blob) => {
+              if (blob) resolve({ blob, previewUrl: canvas.toDataURL('image/jpeg') });
+              else reject("Blob生成失敗");
+            }, 'image/jpeg', 0.8);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    input.addEventListener('change', async function () {
       const file = input.files[0];
       if (!file) return;
-
-      const reader = new FileReader();
-      reader.onload = function (e) {
-        const img = new Image();
-        img.onload = function () {
-          const canvas = document.createElement('canvas');
-          const maxWidth = 800;
-          const scale = maxWidth / img.width;
-          canvas.width = maxWidth;
-          canvas.height = img.height * scale;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob((blob) => {
-            resizedBlob = blob;
-          }, 'image/jpeg', 0.8);
-          preview.src = canvas.toDataURL('image/jpeg');
-          preview.style.display = 'block';
-        };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+      try {
+        const { blob, previewUrl } = await resizeImage(file);
+        resizedBlob = blob;
+        preview.src = previewUrl;
+        preview.style.display = 'block';
+      } catch (err) {
+        alert('画像の読み込みに失敗しました');
+        console.error(err);
+      }
     });
 
     document.getElementById('uploadBtn').addEventListener('click', async () => {
@@ -161,22 +173,27 @@
         return;
       }
 
-      const storageRef = storage.ref().child('photos/photo_' + Date.now());
-      await storageRef.put(resizedBlob);
-      const imageUrl = await storageRef.getDownloadURL();
+      try {
+        const storageRef = storage.ref().child('photos/photo_' + Date.now());
+        await storageRef.put(resizedBlob);
+        const imageUrl = await storageRef.getDownloadURL();
 
-      await db.collection("reports").add({
-        place,
-        person,
-        time,
-        content,
-        lat,
-        lon,
-        timestamp,
-        imageUrl
-      });
+        await db.collection("reports").add({
+          place,
+          person,
+          time,
+          content,
+          lat,
+          lon,
+          timestamp,
+          imageUrl
+        });
 
-      alert("✅ Firestoreへの保存完了！");
+        alert("✅ Firestoreへの保存完了！");
+      } catch (error) {
+        console.error("🔥 アップロード失敗:", error);
+        alert("アップロード中にエラーが発生しました");
+      }
     });
   </script>
 </body>
